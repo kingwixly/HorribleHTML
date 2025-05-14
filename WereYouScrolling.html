@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bad UI Battle - Sentient Scrollbar</title>
+    <style>
+        body {
+            font-family: 'Papyrus', 'Fantasy', cursive; /* Questionable font choice */
+            background-color: #333;
+            color: #ccc;
+            margin: 0;
+            padding: 0;
+            height: 300vh; /* Make page very tall to ensure scrolling is needed */
+            overflow-x: hidden; /* Hide horizontal scrollbar often caused by taunts */
+        }
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #444;
+            border: 5px dashed hotpink;
+            box-shadow: 0 0 15px #000;
+        }
+        h1 {
+            color: limegreen;
+            text-align: center;
+            text-shadow: 2px 2px #000;
+            font-size: 2.5em;
+        }
+        p {
+            line-height: 1.6;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        .taunt-bubble {
+            position: fixed;
+            right: 30px; /* Near where a scrollbar might be */
+            top: 50%;
+            background-color: yellow;
+            color: black;
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 3px 3px 5px rgba(0,0,0,0.5);
+            z-index: 1000;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
+            font-size: 0.9em;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            border: 2px solid red;
+        }
+
+        /* Custom scrollbar - WebKit for demo, Firefox needs different approach */
+        ::-webkit-scrollbar {
+            width: 15px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #555;
+            border: 1px solid #222;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet);
+            border-radius: 10px;
+            border: 2px solid white;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, darkred, darkorange, gold, darkgreen, darkblue, indigo, darkviolet);
+        }
+
+        .important-link {
+            display: block;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: gold;
+            color: black;
+            text-decoration: none;
+            text-align: center;
+            width: 200px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .important-link:hover {
+            background-color: orangered;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>The Scrollbar That HATES You</h1>
+        <p>Welcome, puny human. You think you can simply scroll this page? Think again. I am the master of this domain. I decide where you look, and when.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <p>You see that "important" link further down? Good luck reaching it without a fight. I might just decide you've seen enough of this section and whisk you away!</p>
+        <script>
+            for (let i = 0; i < 30; i++) {
+                document.write("<p>This is paragraph number " + (i + 1) + ". Each one is a testament to my control. You will scroll, or not scroll, as I dictate. The more you struggle, the more amusing it is. Perhaps I'll let you read this one. Perhaps not. Isn't this exciting? The sheer unpredictability must be thrilling for your simple mind. Keep trying, it's adorable.</p>");
+                if (i === 15) {
+                    document.write('<a href="#final-destination" class="important-link">IMPORTANT LINK! CLICK ME!</a>');
+                }
+            }
+        </script>
+        <p>Oh, you're still here? Impressive. Or perhaps I just got bored. Don't get any ideas. I'm always watching. Always ready to... adjust your viewing experience. This text is just filler, of course. But you feel compelled to try and read it, don't you? That's the human way.</p>
+        <p>Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Cras mattis consectetur purus sit amet fermentum. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Nulla vitae elit libero, a pharetra augue. Donec ullamcorper nulla non metus auctor fringilla. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum.</p>
+        <p id="final-destination">Congratulations, you made it to the "end"... or did I LET you? You'll never know. Now, try to scroll back up. I dare you.</p>
+    </div>
+
+    <div id="tauntBubble" class="taunt-bubble">Trying to scroll, are we? Cute.</div>
+
+    <script>
+        const tauntBubble = document.getElementById('tauntBubble');
+        let lastScrollTop = 0;
+        let fightingScroll = false;
+        let fightTimeout;
+        let tauntTimeout;
+
+        const taunts = [
+            "Nope! Not going there.",
+            "Are you sure you wanted to scroll THAT way?",
+            "My page, my rules!",
+            "Having a little trouble?",
+            "Boop! Wrong direction.",
+            "I'm helping! (not really)",
+            "This is fun for me.",
+            "Slow down there, champ!",
+            "Almost... PSYCH!",
+            "You call that a scroll?"
+        ];
+
+        function showTaunt() {
+            clearTimeout(tauntTimeout);
+            const randomTaunt = taunts[Math.floor(Math.random() * taunts.length)];
+            tauntBubble.textContent = randomTaunt;
+            tauntBubble.style.top = (Math.random() * 70 + 15) + '%'; // Random vertical position
+            tauntBubble.style.opacity = '1';
+            tauntTimeout = setTimeout(() => {
+                tauntBubble.style.opacity = '0';
+            }, 2500);
+        }
+
+        window.addEventListener('scroll', function(e) {
+            if (fightingScroll) {
+                return; // Don't interfere if already fighting or auto-scrolling
+            }
+
+            let st = window.pageYOffset || document.documentElement.scrollTop;
+
+            // Fight user's scroll attempt
+            if (Math.random() < 0.25) { // 25% chance to fight back
+                fightingScroll = true;
+                showTaunt();
+                const currentScroll = st;
+                const scrollDelta = st - lastScrollTop;
+                
+                // Scroll in the opposite direction, or just a little bit
+                let fightScrollAmount = -scrollDelta * (Math.random() * 1.5 + 0.5); // Reverse and amplify/dampen
+                if (Math.abs(scrollDelta) < 10) fightScrollAmount = (Math.random() > 0.5 ? 1 : -1) * 100; // small scroll gets big push
+
+                window.scrollTo(0, currentScroll + fightScrollAmount);
+                
+                clearTimeout(fightTimeout);
+                fightTimeout = setTimeout(() => {
+                    fightingScroll = false;
+                }, 100 + Math.random() * 200); // Cooldown before user can try again
+            }
+
+            lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
+        }, false);
+
+        // Autonomous scrolling
+        setInterval(() => {
+            if (document.hidden) return; // Don't scroll if tab is not active
+
+            if (Math.random() < 0.1) { // 10% chance each interval to auto-scroll
+                fightingScroll = true; // Block user input during auto-scroll
+                showTaunt();
+                const scrollAmount = (Math.random() - 0.5) * (window.innerHeight / 2); // Scroll up or down by up to half viewport height
+                const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+                let targetScroll = currentScroll + scrollAmount;
+
+                // Ensure targetScroll is within bounds
+                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                if (targetScroll < 0) targetScroll = 0;
+                if (targetScroll > maxScroll) targetScroll = maxScroll;
+                
+                window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+
+                setTimeout(() => {
+                    fightingScroll = false;
+                }, 800); // Duration of smooth scroll + buffer
+            }
+        }, 4000); // Check every 4 seconds for autonomous scroll
+
+        // Initial taunt for fun
+        setTimeout(showTaunt, 2000);
+    </script>
+</body>
+</html>
