@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bad UI - Ephemeral Tooltip Hunt</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif; /* Serious, but for a silly task */
+            background-color: #beige; /* Old paper feel */
+            color: #3a2f2f;
+            padding: 20px;
+            position: relative; /* For absolute positioning of tooltips/hotspots */
+            min-height: 150vh; /* Ensure some scrolling, to make hotspots "harder" */
+            text-align: center;
+        }
+        .content-area {
+            width: 90%;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            border: 10px ridge #deb887; /* Burlywood - an ugly ridge */
+            background-image: url("data:image/svg+xml,%3Csvg width='52' height='26' viewBox='0 0 52 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M10 10c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm25.464-1.95l8.486 8.486-1.414 1.414-8.486-8.486 1.414-1.414zM41 0c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm-20 40c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zM18 20c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); /* Subtle, annoying background */
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #5a3d1e;
+            margin-bottom: 20px;
+            text-decoration: underline wavy red;
+        }
+        p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+        .hotspot {
+            position: absolute;
+            width: 8px; /* Tiny */
+            height: 8px; /* Tiny */
+            /* background-color: rgba(255,0,0,0.3); uncomment to debug hotspots */
+            cursor: help; /* Slight hint */
+        }
+        .tooltip {
+            position: fixed; /* Fixed to viewport for more annoyance */
+            background-color: #FFFFE0; /* Light yellow */
+            color: #333;
+            border: 2px solid #FF4500; /* Orangered */
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-size: 0.9em;
+            opacity: 0;
+            transition: opacity 0.1s linear; /* Fast fade out */
+            pointer-events: none; /* So it doesn't block other hotspots */
+            max-width: 200px;
+        }
+        #final-instruction {
+            margin-top: 30px;
+            font-weight: bold;
+            font-size: 1.3em;
+            color: green;
+        }
+        #password-input {
+            margin-top:10px;
+            padding: 5px;
+        }
+        #submit-password {
+            padding: 5px 10px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-area">
+        <h1>The Whispering Secrets of the Page</h1>
+        <p>Welcome, seeker of knowledge. To unlock the final message, you must find the hidden whispers scattered across this document. Hover carefully, for the clues are fleeting. They will guide you to the three-word passphrase (all lowercase).</p>
+        <p>Legend says the first word is often associated with greetings in the digital realm. It is short and simple. Many a program has uttered it first.</p>
+
+        <div class="hotspot" style="top: 150px; left: 22%;" data-tooltip="hello..."></div>
+        <div class="hotspot" style="top: 250px; right: 15%;" data-tooltip="...there..."></div>
+        <div class="hotspot" style="bottom: 400px; left: 50%;" data-tooltip="...friend."></div>
+        <div class="hotspot" style="top: 30%; left: 70%;" data-tooltip="Psst! The words are simple."></div>
+        <div class="hotspot" style="top: 50%; left: 10%;" data-tooltip="No caps!"></div>
+        <div class="hotspot" style="bottom: 20%; right: 30%;" data-tooltip="One word was 'friend'."></div>
+
+
+        <p>Some say the path to enlightenment is paved with frustration. This page is no different. The ancient texts (or were they pop-up ads?) spoke of a common phrase, three words in total. The digital spirits are shy; their messages vanish quickly.</p>
+        <p>Many have tried. Few have patience. The second word... it implies a location, not too far, not too near. It is often used when pointing something out.</p>
+        <p>Scroll, search, squint. The final word speaks of companionship, a bond. It is what you might call a trusted associate.</p>
+
+        <div id="final-instruction">
+            If you believe you have deciphered the three-word passphrase, enter it below:
+            <br>
+            <input type="text" id="password-input" placeholder="e.g., one two three">
+            <button id="submit-password">Unlock</button>
+            <p id="result-message" style="color:red; margin-top:10px;"></p>
+        </div>
+    </div>
+
+    <div id="ephemeralTooltip" class="tooltip"></div>
+
+    <script>
+        const hotspots = document.querySelectorAll('.hotspot');
+        const tooltipElement = document.getElementById('ephemeralTooltip');
+        let tooltipTimeout;
+
+        hotspots.forEach(hotspot => {
+            hotspot.addEventListener('mouseover', (event) => {
+                clearTimeout(tooltipTimeout);
+                const message = hotspot.dataset.tooltip;
+                tooltipElement.textContent = message;
+                
+                // Position tooltip near mouse, but not directly under it
+                let x = event.clientX + 15;
+                let y = event.clientY - 30; // Position above cursor
+
+                // Prevent tooltip from going off-screen
+                tooltipElement.style.opacity = '1'; // Make it visible to get dimensions
+                const ttRect = tooltipElement.getBoundingClientRect();
+                if (x + ttRect.width > window.innerWidth) {
+                    x = window.innerWidth - ttRect.width - 5;
+                }
+                if (y < 0) {
+                    y = 5;
+                }
+                 if (y + ttRect.height > window.innerHeight) {
+                    y = window.innerHeight - ttRect.height - 5;
+                }
+
+                tooltipElement.style.left = x + 'px';
+                tooltipElement.style.top = y + 'px';
+                tooltipElement.style.opacity = '1';
+
+                tooltipTimeout = setTimeout(() => {
+                    tooltipElement.style.opacity = '0';
+                }, 700); // 0.7 seconds - very short!
+            });
+
+            hotspot.addEventListener('mouseout', () => {
+                // Optional: could also hide tooltip immediately on mouseout
+                // clearTimeout(tooltipTimeout);
+                // tooltipElement.style.opacity = '0';
+            });
+        });
+
+        document.getElementById('submit-password').addEventListener('click', () => {
+            const attempt = document.getElementById('password-input').value.toLowerCase().trim();
+            const resultMsg = document.getElementById('result-message');
+            if (attempt === "hello there friend") {
+                resultMsg.textContent = "AMAZING! You've unlocked the ancient secret! ...Which is just this message. Congrats!";
+                resultMsg.style.color = 'darkgreen';
+            } else {
+                resultMsg.textContent = "Incorrect. The whispers have misled you, or your memory has failed. Try again!";
+                resultMsg.style.color = 'darkred';
+            }
+        });
+    </script>
+</body>
+</html>
