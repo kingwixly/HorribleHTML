@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bad UI Battle - Guess Your Input</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            border: 5px dotted orange;
+        }
+        h1 {
+            color: #ff00ff;
+            text-shadow: 2px 2px #00ffff;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            color: darkmagenta;
+        }
+        .input-display-area {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 5px; /* For spacing between character boxes */
+        }
+        .char-display {
+            width: 60px;
+            height: 80px;
+            border: 3px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            font-weight: bold;
+            background-color: #eee;
+            color: #555;
+            margin: 0 5px; /* Original margin */
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3);
+            border-radius: 5px;
+        }
+        .char-display.active {
+            border-color: red;
+            background-color: #ffff99; /* Light yellow to indicate active */
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { border-color: red; }
+            50% { border-color: darkred; }
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 15px 25px;
+            font-size: 1.2em;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
+            cursor: pointer;
+            border: 3px outset #ccc;
+            background-color: #lime; /* It's so bad it's good */
+            color: blue;
+            border-radius: 10px;
+            margin: 5px 10px;
+            transition: transform 0.1s ease;
+        }
+        button:active {
+            transform: scale(0.95);
+            border-style: inset;
+        }
+        button:hover {
+            background-color: #32cd32; /* Slightly different green for hover */
+            filter: hue-rotate(90deg);
+        }
+        #submitButton {
+            background-color: hotpink;
+            color: white;
+        }
+        #submitButton:hover {
+            background-color: deeppink;
+        }
+        #finalResult {
+            margin-top: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: green;
+            min-height: 30px; /* So layout doesn't jump */
+        }
+        .instructions {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+            border: 1px dashed #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        .blinking-text {
+            animation: blink-text-animation 1.5s infinite;
+        }
+        @keyframes blink-text-animation {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>The <span class="blinking-text">INCREDIBLY</span> Annoying Input Method!</h1>
+        <p>Try to type the word "HELLO" (or any 5-letter word you desire!). It's "easy"!</p>
+
+        <div class="instructions">
+            Use 'Next Character' to cycle. The current active slot is <strong style="color:red;">RED</strong>.<br>
+            Use 'Lock Character' to fix the current character and move to the next slot.<br>
+            If you go too far, you'll have to cycle through ALL characters again for that slot!
+        </div>
+
+        <div class="input-display-area">
+            <div class="char-display" id="char-0">?</div>
+            <div class="char-display" id="char-1">?</div>
+            <div class="char-display" id="char-2">?</div>
+            <div class="char-display" id="char-3">?</div>
+            <div class="char-display" id="char-4">?</div>
+        </div>
+
+        <div class="controls">
+            <button id="nextCharButton">Next Character</button>
+            <button id="lockCharButton">Lock Character</button>
+        </div>
+
+        <button id="submitButton" style="display:none;">Submit Word!</button>
+        <div id="finalResult"></div>
+    </div>
+
+    <script>
+        const numChars = 5;
+        const charDisplays = [];
+        for (let i = 0; i < numChars; i++) {
+            charDisplays.push(document.getElementById(`char-${i}`));
+        }
+
+        const nextCharButton = document.getElementById('nextCharButton');
+        const lockCharButton = document.getElementById('lockCharButton');
+        const submitButton = document.getElementById('submitButton');
+        const finalResult = document.getElementById('finalResult');
+
+        // A hilariously unhelpful character set for cycling
+        const characterSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-=_+[]{};':\",./<>?`~ ".split('');
+        // Shuffle for more "fun"
+        for (let i = characterSet.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [characterSet[i], characterSet[j]] = [characterSet[j], characterSet[i]];
+        }
+        characterSet.unshift('?'); // Start with '?'
+
+
+        let currentPosition = 0; // Index of the char display we are working on
+        let charCycleIndices = Array(numChars).fill(0); // Index in characterSet for each position
+        let lockedChars = Array(numChars).fill(null);
+
+        function updateDisplay() {
+            charDisplays.forEach((display, index) => {
+                if (lockedChars[index] !== null) {
+                    display.textContent = lockedChars[index];
+                    display.classList.remove('active');
+                } else if (index === currentPosition) {
+                    display.textContent = characterSet[charCycleIndices[index]];
+                    display.classList.add('active');
+                } else {
+                    display.textContent = '?';
+                    display.classList.remove('active');
+                }
+            });
+
+            if (currentPosition >= numChars) {
+                submitButton.style.display = 'inline-block';
+                nextCharButton.disabled = true;
+                lockCharButton.disabled = true;
+            } else {
+                 submitButton.style.display = 'none';
+                 nextCharButton.disabled = false;
+                 lockCharButton.disabled = false;
+            }
+        }
+
+        nextCharButton.addEventListener('click', () => {
+            if (currentPosition < numChars) {
+                charCycleIndices[currentPosition] = (charCycleIndices[currentPosition] + 1) % characterSet.length;
+                updateDisplay();
+            }
+        });
+
+        lockCharButton.addEventListener('click', () => {
+            if (currentPosition < numChars) {
+                const selectedChar = characterSet[charCycleIndices[currentPosition]];
+                if (selectedChar === '?') { // Cannot lock '?'
+                    finalResult.textContent = "You can't lock a '?' placeholder! Cycle to a real character.";
+                    finalResult.style.color = "red";
+                    setTimeout(() => { finalResult.textContent = ""; finalResult.style.color="green";}, 3000);
+                    return;
+                }
+                lockedChars[currentPosition] = selectedChar;
+                charDisplays[currentPosition].classList.remove('active');
+                currentPosition++;
+                if (currentPosition < numChars) {
+                    charCycleIndices[currentPosition] = 0; // Reset cycle for new position
+                }
+                updateDisplay();
+            }
+        });
+
+        submitButton.addEventListener('click', () => {
+            const word = lockedChars.join('');
+            finalResult.textContent = `You "typed": ${word}! Congratulations, I guess?`;
+            finalResult.style.color = "green";
+             // Maybe add a reset button here if we wanted to go again.
+        });
+
+        // Initial setup
+        updateDisplay();
+    </script>
+</body>
+</html>
