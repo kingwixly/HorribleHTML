@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bad UI - Incremental Commitment</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace; /* Monospaced for that "tech" feel */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #E0E0E0; /* Drab gray */
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .form-container {
+            background-color: #C0C0C0; /* Slightly darker drab gray */
+            padding: 30px;
+            border: 3px solid #A0A0A0;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        p.instructions {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 20px;
+            max-width: 400px;
+        }
+        #typed-display-area {
+            min-height: 50px;
+            width: 100%;
+            max-width: 400px;
+            background-color: #F0F0F0;
+            border: 2px inset #888;
+            margin-bottom: 15px;
+            padding: 10px;
+            font-size: 1.5em;
+            letter-spacing: 3px;
+            display: flex; /* For character deletion */
+            flex-wrap: wrap; /* For character deletion */
+        }
+        .char-span {
+            padding: 2px 5px;
+            margin: 2px;
+            border: 1px solid transparent;
+            cursor: default;
+        }
+        .char-span.primed-for-delete {
+            border: 1px dashed red;
+            background-color: #ffdddd;
+            cursor: pointer;
+        }
+        #char-input {
+            padding: 10px;
+            font-size: 1.2em;
+            width: 60px; /* Only allow one char visually, even if more typed */
+            text-align: center;
+            margin-right: 10px;
+            border: 2px inset #888;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 1em;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #B0B0B0;
+            border: 2px outset #999;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:active {
+            border-style: inset;
+        }
+        button:hover {
+            background-color: #A5A5A5;
+        }
+        #deleteButtonsContainer {
+            display: none; /* Initially hidden */
+        }
+        #statusMessage {
+            margin-top: 15px;
+            color: darkred;
+            font-weight: bold;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>The World's Most Annoying Text Field</h1>
+        <p class="instructions">
+            Type ONE character into the small box. Click "Commit Character".
+            If you type another before committing, the previous is lost!
+            To delete: "Prime Delete", click character in display, then "Confirm Delete". Good luck.
+        </p>
+
+        <div id="typed-display-area"></div>
+        <input type="text" id="char-input" maxlength="1">
+        <button id="commitCharButton">Commit Character</button>
+        <br>
+        <button id="primeDeleteButton">Prime Delete</button>
+        <div id="deleteButtonsContainer">
+            <button id="confirmDeleteButton">Confirm Delete</button>
+            <button id="cancelDeleteButton">Cancel Delete</button>
+        </div>
+        <div id="statusMessage"></div>
+    </div>
+
+    <script>
+        const charInput = document.getElementById('char-input');
+        const commitCharButton = document.getElementById('commitCharButton');
+        const typedDisplayArea = document.getElementById('typed-display-area');
+        const primeDeleteButton = document.getElementById('primeDeleteButton');
+        const deleteButtonsContainer = document.getElementById('deleteButtonsContainer');
+        const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+        const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let committedString = "";
+        let uncommittedChar = "";
+        let deleteMode = false;
+        let charToDeleleIndex = -1;
+
+        charInput.addEventListener('input', (e) => {
+            if (charInput.value.length > 1) {
+                charInput.value = charInput.value.slice(-1); // Keep only the last character
+            }
+            uncommittedChar = charInput.value;
+            if (uncommittedChar) {
+                statusMessage.textContent = "Character typed. Don't forget to commit!";
+            }
+        });
+
+        commitCharButton.addEventListener('click', () => {
+            if (uncommittedChar) {
+                committedString += uncommittedChar;
+                renderCommittedString();
+                uncommittedChar = "";
+                charInput.value = "";
+                statusMessage.textContent = "Character committed!";
+                charInput.focus();
+            } else {
+                statusMessage.textContent = "Nothing to commit. Type a character first.";
+            }
+            cancelDeleteMode();
+        });
+
+        function renderCommittedString() {
+            typedDisplayArea.innerHTML = "";
+            for (let i = 0; i < committedString.length; i++) {
+                const span = document.createElement('span');
+                span.textContent = committedString[i];
+                span.classList.add('char-span');
+                span.dataset.index = i;
+                if (deleteMode) {
+                    span.classList.add('primed-for-delete');
+                    span.onclick = () => selectCharForDeletion(i, span);
+                }
+                typedDisplayArea.appendChild(span);
+            }
+        }
+
+        primeDeleteButton.addEventListener('click', () => {
+            deleteMode = true;
+            deleteButtonsContainer.style.display = 'inline-block';
+            primeDeleteButton.style.display = 'none';
+            statusMessage.textContent = "DELETE MODE: Click a character in the display above.";
+            renderCommittedString(); // Re-render to make spans clickable
+        });
+
+        function selectCharForDeletion(index, spanElement) {
+            if (!deleteMode) return;
+            // Deselect previous if any
+            document.querySelectorAll('.char-span.selected-for-delete').forEach(el => {
+                el.classList.remove('selected-for-delete');
+                el.style.backgroundColor = '#ffdddd'; // Back to primed color
+            });
+
+            charToDeleleIndex = index;
+            spanElement.classList.add('selected-for-delete');
+            spanElement.style.backgroundColor = '#ffaaaa'; // Darker red for selected
+            statusMessage.textContent = `Character '${committedString[index]}' selected. Confirm or cancel deletion.`;
+        }
+
+        confirmDeleteButton.addEventListener('click', () => {
+            if (deleteMode && charToDeleleIndex !== -1) {
+                committedString = committedString.slice(0, charToDeleleIndex) + committedString.slice(charToDeleleIndex + 1);
+                statusMessage.textContent = "Character deleted.";
+                cancelDeleteMode();
+                renderCommittedString();
+            } else {
+                 statusMessage.textContent = "No character selected for deletion.";
+            }
+        });
+
+        cancelDeleteButton.addEventListener('click', () => {
+            cancelDeleteMode();
+            statusMessage.textContent = "Deletion cancelled.";
+        });
+
+        function cancelDeleteMode() {
+            deleteMode = false;
+            charToDeleleIndex = -1;
+            deleteButtonsContainer.style.display = 'none';
+            primeDeleteButton.style.display = 'inline-block';
+            renderCommittedString(); // Re-render to remove delete styles
+        }
+
+        renderCommittedString(); // Initial render
+    </script>
+</body>
+</html>
